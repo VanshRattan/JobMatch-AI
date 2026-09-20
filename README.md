@@ -2,13 +2,13 @@
 
 # 🎯 JobMatch-AI
 ### *Next-Generation AI Resume–Job Description Alignment & ATS Scoring System*
-
 [![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
-[![Streamlit](https://img.shields.io/badge/Streamlit-App%20Live-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)](https://streamlit.io/)
-[![HuggingFace](https://img.shields.io/badge/Sentence--BERT-MiniLM--L6--v2-FFAA00?style=for-the-badge&logo=huggingface&logoColor=white)]
-[![Scikit-Learn](https://img.shields.io/badge/Scikit--Learn-Powered-F7931E?style=for-the-badge&logo=scikit-learn&logoColor=white)](https://scikit-learn.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-success?style=for-the-badge)](LICENSE)
-
+[![Streamlit](https://img.shields.io/badge/Streamlit-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)](https://streamlit.io/)
+[![Sentence Transformers](https://img.shields.io/badge/Sentence--Transformers-MiniLM--L6--v2-FFAA00?style=for-the-badge&logo=huggingface&logoColor=white)](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2)
+[![Scikit-Learn](https://img.shields.io/badge/Scikit--Learn-F7931E?style=for-the-badge&logo=scikit-learn&logoColor=white)](https://scikit-learn.org/)
+[![Pandas](https://img.shields.io/badge/Pandas-150458?style=for-the-badge&logo=pandas&logoColor=white)](https://pandas.pydata.org/)
+[![NumPy](https://img.shields.io/badge/NumPy-013243?style=for-the-badge&logo=numpy&logoColor=white)](https://numpy.org/)
+[![License](https://img.shields.io/badge/License-MIT-success?style=for-the-badge)](LICENSE)
 <p align="center">
   <b>Evaluate. Compare. Optimize.</b><br>
   A production-ready NLP system that bridges the gap between candidate resumes and job postings through lexical keyword extraction, deep semantic embeddings, and automated skill gap analysis.
