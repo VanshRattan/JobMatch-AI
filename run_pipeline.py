@@ -35,15 +35,63 @@ except Exception:
             return word
     lemmatizer = SimpleLemmatizer()
 
+# ----------------- Skill Definitions & Taxonomies ----------------- #
 SKILL_KEYWORDS = [
-    'python', 'java', 'c++', 'c#', 'sql', 'r', 'javascript', 'typescript', 'html', 'css',
-    'react', 'angular', 'vue', 'django', 'flask', 'fastapi', 'spring', 'node.js',
-    'machine learning', 'deep learning', 'nlp', 'computer vision', 'pandas', 'numpy',
-    'scikit-learn', 'tensorflow', 'pytorch', 'keras', 'spark', 'hadoop', 'tableau',
-    'power bi', 'excel', 'aws', 'azure', 'google cloud', 'gcp', 'docker', 'kubernetes',
-    'git', 'ci/cd', 'agile', 'scrum', 'leadership', 'communication', 'problem solving',
-    'data analysis', 'data science', 'statistics', 'etl', 'big data'
+    # Languages
+    'python', 'java', 'c++', 'c#', 'sql', 'nosql', 'javascript', 'typescript', 'rust', 'php',
+    'ruby', 'swift', 'kotlin', 'scala', 'bash', 'shell', 'html', 'css',
+    # Web & Fullstack
+    'react', 'reactjs', 'next.js', 'nextjs', 'angular', 'vue', 'vuejs', 'node.js', 'nodejs',
+    'express', 'django', 'flask', 'fastapi', 'spring', 'spring boot', 'asp.net', '.net',
+    'ruby on rails', 'rails', 'laravel', 'graphql', 'rest api', 'restful', 'rest apis',
+    # Data Science, AI & ML
+    'machine learning', 'ml', 'deep learning', 'dl', 'nlp', 'natural language processing',
+    'computer vision', 'generative ai', 'genai', 'llms', 'llm', 'artificial intelligence', 'ai',
+    'pandas', 'numpy', 'scikit-learn', 'sklearn', 'tensorflow', 'pytorch', 'keras',
+    'opencv', 'hugging face', 'data science', 'statistics', 'predictive modeling',
+    # Data Engineering & Big Data
+    'spark', 'pyspark', 'hadoop', 'kafka', 'airflow', 'snowflake', 'databricks',
+    'etl', 'elt', 'big data', 'data warehousing', 'data modeling', 'data pipeline',
+    # Databases
+    'postgresql', 'postgres', 'mysql', 'mongodb', 'redis', 'cassandra', 'dynamodb',
+    'oracle', 'sqlite', 'elasticsearch', 'firebase',
+    # Cloud & DevOps
+    'aws', 'amazon web services', 'azure', 'google cloud', 'gcp', 'docker', 'kubernetes', 'k8s',
+    'ci/cd', 'terraform', 'linux', 'git', 'github', 'gitlab', 'jenkins', 'ansible',
+    # BI & Analytics
+    'tableau', 'power bi', 'powerbi', 'excel', 'looker', 'data analysis', 'business intelligence',
+    # Management & Soft Skills
+    'agile', 'scrum', 'kanban', 'jira', 'leadership', 'communication', 'problem solving',
+    'teamwork', 'critical thinking', 'project management', 'collaboration'
 ]
+
+SKILL_SYNONYMS = {
+    'golang': 'go',
+    'k8s': 'kubernetes',
+    'postgres': 'postgresql',
+    'nodejs': 'node.js',
+    'reactjs': 'react',
+    'vuejs': 'vue',
+    'nextjs': 'next.js',
+    'powerbi': 'power bi',
+    'sklearn': 'scikit-learn',
+    'gcp': 'google cloud',
+    'amazon web services': 'aws',
+    'llm': 'generative ai',
+    'llms': 'generative ai',
+    'genai': 'generative ai',
+    'ml': 'machine learning',
+    'dl': 'deep learning',
+    'natural language processing': 'nlp',
+    'artificial intelligence': 'ai',
+    'restful': 'rest api',
+    'rest apis': 'rest api',
+    'pyspark': 'spark',
+    'rails': 'ruby on rails',
+    'github': 'git',
+    'gitlab': 'git',
+    'spring boot': 'spring',
+}
 
 def clean_text(text):
     text = str(text).lower()
@@ -54,10 +102,36 @@ def clean_text(text):
     words = [lemmatizer.lemmatize(w) for w in words if w not in stop_words]
     return " ".join(words)
 
-def extract_skills(text, skill_keywords=SKILL_KEYWORDS):
-    text_lower = text.lower()
-    found = [skill for skill in skill_keywords if re.search(rf"\b{re.escape(skill)}\b", text_lower)]
-    return list(set(found))
+def extract_skills(raw_text):
+    if not raw_text or not isinstance(raw_text, str):
+        return []
+    text_lower = raw_text.lower()
+    found_skills = set()
+    
+    for skill in SKILL_KEYWORDS:
+        if skill.startswith(('.', '#', '+')):
+            prefix = r'(?<![a-zA-Z0-9])'
+        else:
+            prefix = r'\b'
+            
+        if skill.endswith(('+', '#')):
+            suffix = r'(?![a-zA-Z0-9+#])'
+        elif skill.endswith('.'):
+            suffix = r'(?![a-zA-Z0-9])'
+        else:
+            suffix = r'\b'
+            
+        pattern = prefix + re.escape(skill) + suffix
+        if re.search(pattern, text_lower):
+            found_skills.add(SKILL_SYNONYMS.get(skill, skill))
+            
+    # Ambiguous short terms
+    if re.search(r'\b(r\s+programming|r\s+language|r\s+studio|\bpython,\s*r\b|\br,\s*python\b)\b', text_lower):
+        found_skills.add('r')
+    if re.search(r'\b(golang|go\s+language|go\s+lang)\b', text_lower):
+        found_skills.add('go')
+        
+    return sorted(list(found_skills))
 
 def calculate_skill_score(resume_skills, jd_skills):
     if not jd_skills:
@@ -69,9 +143,9 @@ def match_single_pair(resume_text, jd_text, model=None):
     clean_res = clean_text(resume_text)
     clean_j = clean_text(jd_text)
     
-    # Skills
-    res_skills = extract_skills(clean_res)
-    j_skills = extract_skills(clean_j)
+    # Skills extracted from raw text to preserve symbols (C++, C#, .NET, CI/CD)
+    res_skills = extract_skills(resume_text)
+    j_skills = extract_skills(jd_text)
     skill_score = calculate_skill_score(res_skills, j_skills)
     
     # TF-IDF
@@ -86,8 +160,10 @@ def match_single_pair(resume_text, jd_text, model=None):
         bert_score = float(cosine_similarity(emb[0:1].cpu(), emb[1:2].cpu())[0][0])
         
     # Combined Overall Score (0 - 100%)
-    # Weighted average: 40% BERT, 35% TF-IDF, 25% Skill overlap
-    combined_score = (0.40 * bert_score + 0.35 * tfidf_score + 0.25 * skill_score) * 100
+    if j_skills:
+        combined_score = (0.40 * bert_score + 0.35 * tfidf_score + 0.25 * skill_score) * 100
+    else:
+        combined_score = (0.55 * bert_score + 0.45 * tfidf_score) * 100
     
     return {
         "overall_match_pct": round(combined_score, 2),

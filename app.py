@@ -104,15 +104,63 @@ def load_resources():
 
 stop_words, lemmatizer, sbert_model = load_resources()
 
+# ----------------- Skill Definitions & Taxonomies ----------------- #
 SKILL_KEYWORDS = [
-    'python', 'java', 'c++', 'c#', 'sql', 'r', 'javascript', 'typescript', 'html', 'css',
-    'react', 'angular', 'vue', 'django', 'flask', 'fastapi', 'spring', 'node.js',
-    'machine learning', 'deep learning', 'nlp', 'computer vision', 'pandas', 'numpy',
-    'scikit-learn', 'tensorflow', 'pytorch', 'keras', 'spark', 'hadoop', 'tableau',
-    'power bi', 'excel', 'aws', 'azure', 'google cloud', 'gcp', 'docker', 'kubernetes',
-    'git', 'ci/cd', 'agile', 'scrum', 'leadership', 'communication', 'problem solving',
-    'data analysis', 'data science', 'statistics', 'etl', 'big data'
+    # Languages
+    'python', 'java', 'c++', 'c#', 'sql', 'nosql', 'javascript', 'typescript', 'rust', 'php',
+    'ruby', 'swift', 'kotlin', 'scala', 'bash', 'shell', 'html', 'css',
+    # Web & Fullstack
+    'react', 'reactjs', 'next.js', 'nextjs', 'angular', 'vue', 'vuejs', 'node.js', 'nodejs',
+    'express', 'django', 'flask', 'fastapi', 'spring', 'spring boot', 'asp.net', '.net',
+    'ruby on rails', 'rails', 'laravel', 'graphql', 'rest api', 'restful', 'rest apis',
+    # Data Science, AI & ML
+    'machine learning', 'ml', 'deep learning', 'dl', 'nlp', 'natural language processing',
+    'computer vision', 'generative ai', 'genai', 'llms', 'llm', 'artificial intelligence', 'ai',
+    'pandas', 'numpy', 'scikit-learn', 'sklearn', 'tensorflow', 'pytorch', 'keras',
+    'opencv', 'hugging face', 'data science', 'statistics', 'predictive modeling',
+    # Data Engineering & Big Data
+    'spark', 'pyspark', 'hadoop', 'kafka', 'airflow', 'snowflake', 'databricks',
+    'etl', 'elt', 'big data', 'data warehousing', 'data modeling', 'data pipeline',
+    # Databases
+    'postgresql', 'postgres', 'mysql', 'mongodb', 'redis', 'cassandra', 'dynamodb',
+    'oracle', 'sqlite', 'elasticsearch', 'firebase',
+    # Cloud & DevOps
+    'aws', 'amazon web services', 'azure', 'google cloud', 'gcp', 'docker', 'kubernetes', 'k8s',
+    'ci/cd', 'terraform', 'linux', 'git', 'github', 'gitlab', 'jenkins', 'ansible',
+    # BI & Analytics
+    'tableau', 'power bi', 'powerbi', 'excel', 'looker', 'data analysis', 'business intelligence',
+    # Management & Soft Skills
+    'agile', 'scrum', 'kanban', 'jira', 'leadership', 'communication', 'problem solving',
+    'teamwork', 'critical thinking', 'project management', 'collaboration'
 ]
+
+SKILL_SYNONYMS = {
+    'golang': 'go',
+    'k8s': 'kubernetes',
+    'postgres': 'postgresql',
+    'nodejs': 'node.js',
+    'reactjs': 'react',
+    'vuejs': 'vue',
+    'nextjs': 'next.js',
+    'powerbi': 'power bi',
+    'sklearn': 'scikit-learn',
+    'gcp': 'google cloud',
+    'amazon web services': 'aws',
+    'llm': 'generative ai',
+    'llms': 'generative ai',
+    'genai': 'generative ai',
+    'ml': 'machine learning',
+    'dl': 'deep learning',
+    'natural language processing': 'nlp',
+    'artificial intelligence': 'ai',
+    'restful': 'rest api',
+    'rest apis': 'rest api',
+    'pyspark': 'spark',
+    'rails': 'ruby on rails',
+    'github': 'git',
+    'gitlab': 'git',
+    'spring boot': 'spring',
+}
 
 def clean_text(text):
     text = str(text).lower()
@@ -123,10 +171,36 @@ def clean_text(text):
     words = [lemmatizer.lemmatize(w) for w in words if w not in stop_words]
     return " ".join(words)
 
-def extract_skills(text):
-    text_lower = text.lower()
-    found = [s for s in SKILL_KEYWORDS if re.search(rf"\b{re.escape(s)}\b", text_lower)]
-    return sorted(list(set(found)))
+def extract_skills(raw_text):
+    if not raw_text or not isinstance(raw_text, str):
+        return []
+    text_lower = raw_text.lower()
+    found_skills = set()
+    
+    for skill in SKILL_KEYWORDS:
+        if skill.startswith(('.', '#', '+')):
+            prefix = r'(?<![a-zA-Z0-9])'
+        else:
+            prefix = r'\b'
+            
+        if skill.endswith(('+', '#')):
+            suffix = r'(?![a-zA-Z0-9+#])'
+        elif skill.endswith('.'):
+            suffix = r'(?![a-zA-Z0-9])'
+        else:
+            suffix = r'\b'
+            
+        pattern = prefix + re.escape(skill) + suffix
+        if re.search(pattern, text_lower):
+            found_skills.add(SKILL_SYNONYMS.get(skill, skill))
+            
+    # Ambiguous short terms
+    if re.search(r'\b(r\s+programming|r\s+language|r\s+studio|\bpython,\s*r\b|\br,\s*python\b)\b', text_lower):
+        found_skills.add('r')
+    if re.search(r'\b(golang|go\s+language|go\s+lang)\b', text_lower):
+        found_skills.add('go')
+        
+    return sorted(list(found_skills))
 
 def extract_pdf_text(uploaded_file):
     if not HAS_PDF:
@@ -226,9 +300,9 @@ Knowledge of Agile and Scrum frameworks. Strong leadership and communication ski
                 clean_res = clean_text(resume_input)
                 clean_j = clean_text(jd_input)
                 
-                # 1. Skills
-                r_skills = extract_skills(clean_res)
-                j_skills = extract_skills(clean_j)
+                # 1. Skills (Extracted from raw inputs to preserve technical symbols like C++, C#, .NET, CI/CD)
+                r_skills = extract_skills(resume_input)
+                j_skills = extract_skills(jd_input)
                 matched_skills = sorted(list(set(r_skills).intersection(set(j_skills))))
                 missing_skills = sorted(list(set(j_skills) - set(r_skills)))
                 extra_skills = sorted(list(set(r_skills) - set(j_skills)))
@@ -248,7 +322,11 @@ Knowledge of Agile and Scrum frameworks. Strong leadership and communication ski
                     bert_score = tfidf_score
                 
                 # Weighted Overall Match (0 - 100%)
-                overall_score = round((0.40 * bert_score + 0.35 * tfidf_score + 0.25 * skill_score) * 100, 1)
+                # If JD specifies technical skills, blend skill overlap; otherwise weight semantic + keyword similarity fairly
+                if j_skills:
+                    overall_score = round((0.40 * bert_score + 0.35 * tfidf_score + 0.25 * skill_score) * 100, 1)
+                else:
+                    overall_score = round((0.55 * bert_score + 0.45 * tfidf_score) * 100, 1)
                 
             st.markdown("---")
             st.subheader("📊 Match Results & Breakdown")
@@ -281,12 +359,16 @@ Knowledge of Agile and Scrum frameworks. Strong leadership and communication ski
                 if matched_skills:
                     badges = " ".join([f'<span class="skill-badge skill-matched">✓ {s}</span>' for s in matched_skills])
                     st.markdown(badges, unsafe_allow_html=True)
+                elif not j_skills:
+                    st.info("No indexed skills identified in JD.")
                 else:
-                    st.info("No direct skill matches detected.")
+                    st.warning("No direct skill matches detected.")
 
             with sk_col2:
                 st.markdown(f"**❌ Missing Skills Required by JD ({len(missing_skills)}):**")
-                if missing_skills:
+                if not j_skills:
+                    st.info("No specific technical skills detected in JD.")
+                elif missing_skills:
                     badges = " ".join([f'<span class="skill-badge skill-missing">✗ {s}</span>' for s in missing_skills])
                     st.markdown(badges, unsafe_allow_html=True)
                 else:
@@ -298,14 +380,100 @@ Knowledge of Agile and Scrum frameworks. Strong leadership and communication ski
                     badges = " ".join([f'<span class="skill-badge skill-resume">{s}</span>' for s in extra_skills])
                     st.markdown(badges, unsafe_allow_html=True)
                 else:
-                    st.write("None detected.")
+                    st.write("No additional skills detected.")
                     
-            # Recommendations
-            st.markdown("### 💡 Recommendations")
-            if missing_skills:
-                st.warning(f"To improve this match score, consider highlighting experience with: **{', '.join(missing_skills)}** if applicable.")
+            # Intelligent Recommendations & Actionable Insights
+            st.markdown("### 💡 Intelligent Recommendations & Actionable Insights")
+            
+            # Executive Fit Summary
+            if overall_score >= 75:
+                st.success(f"🎯 **High Alignment ({overall_score}%)**: The candidate demonstrates strong relevance to the role's core expectations and technical domain.")
+            elif overall_score >= 50:
+                st.info(f"⚖️ **Moderate Alignment ({overall_score}%)**: The profile shows a solid foundational background, with clear opportunities for targeted refinement.")
             else:
-                st.success("Great alignment! The candidate demonstrates all required keywords and technical skills.")
+                st.warning(f"⚠️ **Low Match Alignment ({overall_score}%)**: Noticeable divergence detected between the candidate's profile and the job requirements.")
+
+            rec_col1, rec_col2 = st.columns(2)
+            
+            with rec_col1:
+                st.markdown("#### 🎯 Technical & Skill Optimization")
+                if j_skills and missing_skills:
+                    st.markdown(
+                        f"""
+- ❌ **Address Critical Skill Gaps**: The job description specifically requests **{len(missing_skills)}** skill(s) absent from the resume:
+  - **Missing Skills**: {', '.join([f'`{s}`' for s in missing_skills])}
+  - **Action**: If the candidate has hands-on, academic, or project experience with these tools, **explicitly incorporate them** into the skills section and project bullet points for ATS indexing.
+  - **Bridge Strategy**: If unfamiliar with these tools, highlight transferable competencies in adjacent technologies or demonstrate ongoing coursework.
+                        """
+                    )
+                elif j_skills and not missing_skills:
+                    st.markdown(
+                        f"""
+- ✅ **100% Technical Skill Coverage**: All **{len(j_skills)}** technical skills identified in the job description are present in the resume!
+- 🚀 **Next Level**: Focus on articulating concrete business impact using the STAR method (Situation, Task, Action, Result) with measurable metrics (e.g., latency reduction, cost savings, scale).
+                        """
+                    )
+                else:
+                    st.markdown(
+                        """
+- ℹ️ **General/Non-Technical JD**: The job description did not mention standard indexed technical tools.
+- 🎯 **Action**: Carefully read the posting for proprietary workflows, domain terminology, or specialized methodologies, and mirror that exact phrasing directly in the resume.
+                        """
+                    )
+                
+                if extra_skills:
+                    st.markdown(
+                        f"""
+- 🌟 **Leverage Candidate Differentiators**: Candidate brings **{len(extra_skills)}** additional skill(s) beyond the JD ({', '.join([f'`{s}`' for s in extra_skills[:6]])}):
+  - **Strategy**: Position these in interviews or a cover letter as versatile value-adds for cross-functional initiatives.
+                        """
+                    )
+
+            with rec_col2:
+                st.markdown("#### 🔍 ATS & Semantic Alignment")
+                if bert_score >= 0.65 and tfidf_score < 0.40:
+                    st.markdown(
+                        f"""
+- ⚠️ **Semantic Relevance vs. ATS Keyword Gap**:
+  - **Semantic Context Score**: `{round(bert_score * 100, 1)}%` (High)
+  - **Exact Keyword Overlap**: `{round(tfidf_score * 100, 1)}%` (Low)
+  - **Takeaway**: Experience is conceptually aligned, but automated ATS parsers may filter out the resume due to low exact keyword matches. **Recommendation**: Rephrase project summaries to match the exact wording used in the posting.
+                        """
+                    )
+                elif tfidf_score >= 0.55 and bert_score < 0.40:
+                    st.markdown(
+                        f"""
+- ⚠️ **Keyword Overlap vs. Context Depth**:
+  - **Exact Keyword Match**: `{round(tfidf_score * 100, 1)}%` (High)
+  - **Semantic Context Score**: `{round(bert_score * 100, 1)}%` (Low)
+  - **Takeaway**: Many keywords match, but overall contextual responsibilities differ. **Recommendation**: Structure bullet points around end-to-end deliverables and business outcomes rather than isolated skill lists.
+                        """
+                    )
+                elif overall_score >= 70:
+                    st.markdown(
+                        f"""
+- ✨ **Harmonious Alignment**:
+  - Both semantic intent (`{round(bert_score * 100, 1)}%`) and keyword density (`{round(tfidf_score * 100, 1)}%`) are well-balanced.
+  - **Takeaway**: The resume is primed for both ATS screening and recruiter review.
+                        """
+                    )
+                else:
+                    st.markdown(
+                        f"""
+- 📉 **Broad Alignment Gap**:
+  - Both semantic relevance (`{round(bert_score * 100, 1)}%`) and keyword match (`{round(tfidf_score * 100, 1)}%`) show significant divergence.
+  - **Takeaway**: Consider targeting roles better matched to current strengths, or substantially restructure the resume around this specific field.
+                        """
+                    )
+                
+                st.markdown(
+                    """
+- 📋 **Resume Polish Tips**:
+  - **Quantify Impact**: Use formulas like *"Accomplished X as measured by Y, by doing Z"*.
+  - **Header Alignment**: Ensure the resume title directly mirrors the target job title.
+  - **Formatting**: Keep standard ATS section headings (*Summary, Experience, Skills, Education*).
+                    """
+                )
 
 # Tab 2: Dataset Explorer
 with tabs[1]:
